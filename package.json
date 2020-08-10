@@ -1,26 +1,25 @@
 {
-  "name": "mousetrap",
+  "name": "mousetraps",
   "version": "1.6.5",
   "description": "Simple library for handling keyboard shortcuts",
-  "main": "mousetrap.js",
+  "main": "mousetraps.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "mocha --reporter=nyan tests/test.mousetrap.js"
+    "test": "mocha --reporter=nyan tests/test.Mousetraps.js"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/ccampbell/mousetrap.git"
+    "url": "github.com/devsecdan/mousetraps.git"
   },
   "keywords": [
     "keyboard",
     "shortcuts",
     "events"
   ],
-  "author": "Craig Campbell",
+  "author": "Daniel Brand",
   "license": "Apache-2.0 WITH LLVM-exception",
-  "gitHead": "c202a0bd4967d5a3064f9cb376db51dec9345336",
   "readmeFilename": "README.md",
   "devDependencies": {
     "chai": "^4.2.0",

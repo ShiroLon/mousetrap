@@ -1,10 +1,10 @@
 /**
- * Overwrites default Mousetrap.bind method to optionally accept
+ * Overwrites default Mousetraps.bind method to optionally accept
  * an object to bind multiple key events in a single call
  *
  * You can pass it in like:
  *
- * Mousetrap.bind({
+ * Mousetraps.bind({
  *     'a': function() { console.log('a'); },
  *     'b': function() { console.log('b'); }
  * });
@@ -13,12 +13,12 @@
  * as a second argument
  *
  */
-/* global Mousetrap:true */
-(function(Mousetrap) {
-    var _oldBind = Mousetrap.prototype.bind;
+/* global Mousetraps:true */
+(function(Mousetraps) {
+    var _oldBind = Mousetraps.prototype.bind;
     var args;
 
-    Mousetrap.prototype.bind = function() {
+    Mousetraps.prototype.bind = function() {
         var self = this;
         args = arguments;
 
@@ -35,5 +35,5 @@
         }
     };
 
-    Mousetrap.init();
-}) (Mousetrap);
+    Mousetraps.init();
+}) (Mousetraps);

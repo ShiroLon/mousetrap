@@ -14,7 +14,7 @@ module.exports = function(grunt) {
             },
             generic: {
                 src: [
-                    'mousetrap.js'
+                    'Mousetraps.js'
                 ]
             },
             plugins: {

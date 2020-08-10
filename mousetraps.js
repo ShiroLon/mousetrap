@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Mousetrap is a simple keyboard shortcut library for Javascript with
+ * Mousetraps is a simple keyboard shortcut library for Javascript with
  * no external dependencies
  *
  * @version 1.6.5
  * @url craig.is/killing/mice
+ * 
+ * Mousetraps multi keybind support by Daniel Brand
  */
 (function(window, document, undefined) {
 
-    // Check if mousetrap is used inside browser, if not, return
+    // Check if Mousetraps is used inside browser, if not, return
     if (!window) {
         return;
     }
@@ -158,10 +160,10 @@
     for (i = 0; i <= 9; ++i) {
 
         // This needs to use a string cause otherwise since 0 is falsey
-        // mousetrap will never fire for numpad 0 pressed as part of a keydown
+        // Mousetraps will never fire for numpad 0 pressed as part of a keydown
         // event.
         //
-        // @see https://github.com/ccampbell/mousetrap/pull/258
+        // @see https://github.com/ccampbell/Mousetraps/pull/258
         _MAP[i + 96] = i.toString();
     }
 
@@ -432,13 +434,13 @@
         return _belongsTo(element.parentNode, ancestor);
     }
 
-    function Mousetrap(targetElement) {
+    function Mousetraps(targetElement) {
         var self = this;
 
         targetElement = targetElement || document;
 
-        if (!(self instanceof Mousetrap)) {
-            return new Mousetrap(targetElement);
+        if (!(self instanceof Mousetraps)) {
+            return new Mousetraps(targetElement);
         }
 
         /**
@@ -449,7 +451,7 @@
         self.target = targetElement;
 
         /**
-         * a list of all the callbacks setup via Mousetrap.bind()
+         * a list of all the callbacks setup via Mousetraps.bind()
          *
          * @type {Object}
          */
@@ -500,23 +502,71 @@
         var _nextExpectedAction = false;
 
         /**
+         * Add a callback to the _directMap
+         * @param {*} combination 
+         * @param {*} action 
+         * @param {*} callback 
+         */
+        function _addDirectMapHandler(combination, action, callback) {
+            let callbacks = self._directMap[combination + ':' + action];
+            if (!callbacks) {
+                callbacks = new Set();
+            }
+            callbacks.add(callback);
+            self._directMap[combination + ':' + action] = callbacks;
+        }
+
+        /**
+         * Remove a callback from the _directMap
+         * @param {*} combination 
+         * @param {*} action 
+         * @param {*} callback 
+         */
+        self._removeDirectMapHandler = function(keys, action, callback) {
+            keys = keys instanceof Array ? keys : [keys];
+            for (let combination of keys) {
+                let callbacks = self._directMap[combination + ':' + action];
+                if (callbacks) {
+                    callbacks.delete(callback);
+                    self._directMap[combination + ':' + action] = callbacks;
+                }
+            }
+        }
+
+        self._removeCallback = function(keys, action, callback) {
+            keys = keys instanceof Array ? keys : [keys];
+            for (let combination of keys) {
+                let sequence = combination.split(' ');
+                let sequenceName = (sequence.length > 1) ? combination : null;
+                for (let i = 0; i < sequence.length; i++) {
+                    let info = _getKeyInfo(sequence[i], action);
+                    _getMatches(info.key, info.modifiers, {type: info.action}, sequenceName, sequence[i], i, callback);
+                }
+            }
+        }
+
+        /**
          * resets all sequence counters except for the ones passed in
          *
          * @param {Object} doNotReset
          * @returns void
          */
         function _resetSequences(doNotReset) {
-            doNotReset = doNotReset || {};
+            doNotReset = doNotReset || [];
 
             var activeSequences = false,
-                key;
+                key,
+                callback;
 
-            for (key in _sequenceLevels) {
-                if (doNotReset[key]) {
-                    activeSequences = true;
-                    continue;
+            for ([key, callbacks] of Object.entries(_sequenceLevels)) {
+                for (let callback of callbacks.keys()) {
+                    if (doNotReset[key] && doNotReset[key].includes(callback)) {
+                        activeSequences = true;
+                        continue;
+                    }
+                    _sequenceLevels[key].set(callback, 0);
                 }
-                _sequenceLevels[key] = 0;
+                
             }
 
             if (!activeSequences) {
@@ -536,7 +586,7 @@
          * @param {number=} level
          * @returns {Array}
          */
-        function _getMatches(character, modifiers, e, sequenceName, combination, level) {
+        function _getMatches(character, modifiers, e, sequenceName, combination, level, callbackToDelete) {
             var i;
             var callback;
             var matches = [];
@@ -559,7 +609,7 @@
 
                 // if a sequence name is not specified, but this is a sequence at
                 // the wrong level then move onto the next match
-                if (!sequenceName && callback.seq && _sequenceLevels[callback.seq] != callback.level) {
+                if (!sequenceName && callback.seq && getSequenceLevel(callback.seq, callback.originalCallback) != callback.level) {
                     continue;
                 }
 
@@ -578,17 +628,15 @@
                 // firefox will fire a keypress if meta or control is down
                 if ((action == 'keypress' && !e.metaKey && !e.ctrlKey) || _modifiersMatch(modifiers, callback.modifiers)) {
 
-                    // when you bind a combination or sequence a second time it
-                    // should overwrite the first one.  if a sequenceName or
-                    // combination is specified in this call it does just that
-                    //
-                    // @todo make deleting its own method?
-                    var deleteCombo = !sequenceName && callback.combo == combination;
-                    var deleteSequence = sequenceName && callback.seq == sequenceName && callback.level == level;
-                    if (deleteCombo || deleteSequence) {
-                        self._callbacks[character].splice(i, 1);
+                    // Delete if caller says so
+                    if (callbackToDelete) {
+                        let deleteCombo = !sequenceName && callback.combo == combination;
+                        let deleteSequence = sequenceName && callback.seq == sequenceName && callback.level == level;
+                        if (callback.originalCallback === callbackToDelete && (deleteCombo || deleteSequence)) {
+                            self._callbacks[character].splice(i, 1);
+                        }
                     }
-
+                    
                     matches.push(callback);
                 }
             }
@@ -609,7 +657,7 @@
         function _fireCallback(callback, e, combo, sequence) {
 
             // if this event should not happen stop here
-            if (self.stopCallback(e, e.target || e.srcElement, combo, sequence)) {
+            if (self.stopCallback(e, e.target || e.srcElement, combo, sequence, callback)) {
                 return;
             }
 
@@ -666,7 +714,12 @@
                     processedSequenceCallback = true;
 
                     // keep a list of which sequences were matches for later
-                    doNotReset[callbacks[i].seq] = 1;
+                    let dnr = doNotReset[callbacks[i].seq];
+                    if (!dnr) {
+                        dnr = [];
+                    }
+                    dnr.push(callbacks[i].originalCallback);
+                    doNotReset[callbacks[i].seq] = dnr;
                     _fireCallback(callbacks[i].callback, e, callbacks[i].combo, callbacks[i].seq);
                     continue;
                 }
@@ -751,6 +804,37 @@
         }
 
         /**
+         * Increment the sequence level for the given combo-callback pair
+         * Create new entry and set to 0 if it does not already exist
+         * @param {*} combo 
+         * @param {*} callback 
+         */
+        function incrementSequenceLevel(combo, callback) {
+            let levels = _sequenceLevels[combo];
+            if (!levels) {
+                levels = new Map();
+            }
+            let level = levels.get(callback);
+            if (typeof level === "undefined") {
+                level = 0;
+            }
+            else {
+                ++level;
+            }
+            levels.set(callback, level);
+            _sequenceLevels[combo] = levels;
+        }
+
+        /**
+         * Returns the sequence level for the given combo-callback pair
+         * @param {*} combo 
+         * @param {*} callback 
+         */
+        function getSequenceLevel(combo, callback) {
+            return _sequenceLevels[combo].get(callback);
+        }
+
+        /**
          * binds a key sequence to an event
          *
          * @param {string} combo - combo specified in bind call
@@ -763,7 +847,7 @@
 
             // start off by adding a sequence level record for this combination
             // and setting the level to 0
-            _sequenceLevels[combo] = 0;
+            incrementSequenceLevel(combo, callback);
 
             /**
              * callback to increase the sequence level for this sequence and reset
@@ -775,7 +859,7 @@
             function _increaseSequence(nextAction) {
                 return function() {
                     _nextExpectedAction = nextAction;
-                    ++_sequenceLevels[combo];
+                    incrementSequenceLevel(combo, callback);
                     _resetSequenceTimer();
                 };
             }
@@ -814,7 +898,7 @@
             for (var i = 0; i < keys.length; ++i) {
                 var isFinal = i + 1 === keys.length;
                 var wrappedCallback = isFinal ? _callbackAndReset : _increaseSequence(action || _getKeyInfo(keys[i + 1]).action);
-                _bindSingle(keys[i], wrappedCallback, action, combo, i);
+                _bindSingle(keys[i], wrappedCallback, action, combo, i, callback);
             }
         }
 
@@ -828,10 +912,10 @@
          * @param {number=} level - what part of the sequence the command is
          * @returns void
          */
-        function _bindSingle(combination, callback, action, sequenceName, level) {
+        function _bindSingle(combination, callback, action, sequenceName, level, originalCallback) {
 
-            // store a direct mapped reference for use with Mousetrap.trigger
-            self._directMap[combination + ':' + action] = callback;
+            // store a direct mapped reference for use with Mousetraps.trigger
+            _addDirectMapHandler(combination, action, callback);
 
             // make sure multiple spaces in a row become a single space
             combination = combination.replace(/\s+/g, ' ');
@@ -852,8 +936,20 @@
             // a callback is added for this key
             self._callbacks[info.key] = self._callbacks[info.key] || [];
 
-            // remove an existing match if there is one
-            _getMatches(info.key, info.modifiers, {type: info.action}, sequenceName, combination, level);
+            // Do not add a new binding if an identical one already exists
+            let callbacks = self._callbacks[info.key];
+            for (let cb of callbacks) {
+                if (cb.callback === callback &&
+                    _modifiersMatch(cb.modifiers, info.modifiers) &&
+                    cb.action === info.action &&
+                    cb.seq === sequenceName &&
+                    cb.level === level &&
+                    cb.combo === combination &&
+                    cb.originalCallback === originalCallback
+                ) {
+                    return;
+                }
+            }
 
             // add this call back to the array
             // if it is a sequence put it at the beginning
@@ -867,7 +963,8 @@
                 action: info.action,
                 seq: sequenceName,
                 level: level,
-                combo: combination
+                combo: combination,
+                originalCallback: originalCallback
             });
         }
 
@@ -881,7 +978,7 @@
          */
         self._bindMultiple = function(combinations, callback, action) {
             for (var i = 0; i < combinations.length; ++i) {
-                _bindSingle(combinations[i], callback, action);
+                _bindSingle(combinations[i], callback, action, null, null, callback);
             }
         };
 
@@ -892,7 +989,7 @@
     }
 
     /**
-     * binds an event to mousetrap
+     * binds an event to Mousetraps
      *
      * can be a single key, a combination of keys separated with +,
      * an array of keys, or a sequence of keys separated by spaces
@@ -905,7 +1002,7 @@
      * @param {string=} action - 'keypress', 'keydown', or 'keyup'
      * @returns void
      */
-    Mousetrap.prototype.bind = function(keys, callback, action) {
+    Mousetraps.prototype.bind = function(keys, callback, action) {
         var self = this;
         keys = keys instanceof Array ? keys : [keys];
         self._bindMultiple.call(self, keys, callback, action);
@@ -913,7 +1010,7 @@
     };
 
     /**
-     * unbinds an event to mousetrap
+     * unbinds an event to Mousetraps
      *
      * the unbinding sets the callback function of the specified key combo
      * to an empty function and deletes the corresponding key in the
@@ -926,12 +1023,15 @@
      * it was defined in the bind method
      *
      * @param {string|Array} keys
+     * @param {Object} callback
      * @param {string} action
      * @returns void
      */
-    Mousetrap.prototype.unbind = function(keys, action) {
+    Mousetraps.prototype.unbind = function(keys, callback, action) {
         var self = this;
-        return self.bind.call(self, keys, function() {}, action);
+        self._removeDirectMapHandler.call(self, keys, action, callback);
+        self._removeCallback.call(self, keys, action, callback);
+        return self;
     };
 
     /**
@@ -941,10 +1041,13 @@
      * @param {string=} action
      * @returns void
      */
-    Mousetrap.prototype.trigger = function(keys, action) {
+    Mousetraps.prototype.trigger = function(keys, action) {
         var self = this;
-        if (self._directMap[keys + ':' + action]) {
-            self._directMap[keys + ':' + action]({}, keys);
+        let callbacks = self._directMap[keys + ':' + action];
+        if (callbacks) {
+            for (let callback of callbacks) {
+                callback({}, keys);
+            }
         }
         return self;
     };
@@ -956,7 +1059,7 @@
      *
      * @returns void
      */
-    Mousetrap.prototype.reset = function() {
+    Mousetraps.prototype.reset = function() {
         var self = this;
         self._callbacks = {};
         self._directMap = {};
@@ -970,11 +1073,11 @@
      * @param {Element} element
      * @return {boolean}
      */
-    Mousetrap.prototype.stopCallback = function(e, element) {
+    Mousetraps.prototype.stopCallback = function(e, element) {
         var self = this;
 
-        // if the element has the class "mousetrap" then no need to stop
-        if ((' ' + element.className + ' ').indexOf(' mousetrap ') > -1) {
+        // if the element has the class "Mousetraps" then no need to stop
+        if ((' ' + element.className + ' ').indexOf(' Mousetraps ') > -1) {
             return false;
         }
 
@@ -1003,7 +1106,7 @@
     /**
      * exposes _handleKey publicly so it can be overwritten by extensions
      */
-    Mousetrap.prototype.handleKey = function() {
+    Mousetraps.prototype.handleKey = function() {
         var self = this;
         return self._handleKey.apply(self, arguments);
     };
@@ -1011,7 +1114,7 @@
     /**
      * allow custom key mappings
      */
-    Mousetrap.addKeycodes = function(object) {
+    Mousetraps.addKeycodes = function(object) {
         for (var key in object) {
             if (object.hasOwnProperty(key)) {
                 _MAP[key] = object[key];
@@ -1021,38 +1124,38 @@
     };
 
     /**
-     * Init the global mousetrap functions
+     * Init the global Mousetraps functions
      *
-     * This method is needed to allow the global mousetrap functions to work
-     * now that mousetrap is a constructor function.
+     * This method is needed to allow the global Mousetraps functions to work
+     * now that Mousetraps is a constructor function.
      */
-    Mousetrap.init = function() {
-        var documentMousetrap = Mousetrap(document);
-        for (var method in documentMousetrap) {
+    Mousetraps.init = function() {
+        var documentMousetraps = Mousetraps(document);
+        for (var method in documentMousetraps) {
             if (method.charAt(0) !== '_') {
-                Mousetrap[method] = (function(method) {
+                Mousetraps[method] = (function(method) {
                     return function() {
-                        return documentMousetrap[method].apply(documentMousetrap, arguments);
+                        return documentMousetraps[method].apply(documentMousetraps, arguments);
                     };
                 } (method));
             }
         }
     };
 
-    Mousetrap.init();
+    Mousetraps.init();
 
-    // expose mousetrap to the global object
-    window.Mousetrap = Mousetrap;
+    // expose Mousetraps to the global object
+    window.Mousetraps = Mousetraps;
 
     // expose as a common js module
     if (typeof module !== 'undefined' && module.exports) {
-        module.exports = Mousetrap;
+        module.exports = Mousetraps;
     }
 
-    // expose mousetrap as an AMD module
+    // expose Mousetraps as an AMD module
     if (typeof define === 'function' && define.amd) {
         define(function() {
-            return Mousetrap;
+            return Mousetraps;
         });
     }
 }) (typeof window !== 'undefined' ? window : null, typeof  window !== 'undefined' ? document : null);

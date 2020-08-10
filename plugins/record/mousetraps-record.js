@@ -1,9 +1,12 @@
 /**
- * This extension allows you to record a sequence using Mousetrap.
+ * This extension allows you to record a sequence using Mousetraps.
  *
  * @author Dan Tao <daniel.tao@gmail.com>
+ * 
+ * Multi keybind support by Daniel Brand
+ * 
  */
-(function(Mousetrap) {
+(function(Mousetraps) {
     /**
      * the sequence currently being recorded
      *
@@ -41,12 +44,12 @@
         _recordTimer = null,
 
         /**
-         * the original handleKey method to override when Mousetrap.record() is
+         * the original handleKey method to override when Mousetraps.record() is
          * called
          *
          * @type {Function}
          */
-        _origHandleKey = Mousetrap.prototype.handleKey;
+        _origHandleKey = Mousetraps.prototype.handleKey;
 
     /**
      * handles a character key event
@@ -80,6 +83,7 @@
         } else if (e.type == 'keyup' && _currentRecordedKeys.length > 0) {
             _recordCurrentCombo();
         }
+        e.preventDefault();
     }
 
     /**
@@ -150,7 +154,7 @@
 
     /**
      * finishes the current recording, passes the recorded sequence to the stored
-     * callback, and sets Mousetrap.handleKey back to its original function
+     * callback, and sets Mousetraps.handleKey back to its original function
      *
      * @returns void
      */
@@ -186,7 +190,7 @@
      * @param {Function} callback
      * @returns void
      */
-    Mousetrap.prototype.record = function(callback) {
+    Mousetraps.prototype.record = function(callback) {
         var self = this;
         self.recording = true;
         _recordedSequenceCallback = function() {
@@ -195,11 +199,11 @@
         };
     };
 
-    Mousetrap.prototype.handleKey = function() {
+    Mousetraps.prototype.handleKey = function() {
         var self = this;
         _handleKey.apply(self, arguments);
     };
 
-    Mousetrap.init();
+    Mousetraps.init();
 
-})(Mousetrap);
+})(Mousetraps);

@@ -1,3 +1,5 @@
+const { clock } = require('sinon');
+
 /**
  * The following strategy of importing modules allows the tests to be run in a browser environment.
  * Test libraries like `mocha`, `sinon`, etc. are expected to be loaded before this file.
@@ -12,22 +14,22 @@ if (typeof window === 'undefined') {
 }
 
 // Load libraries that require access to the DOM after `jsdom-global`
-var Mousetrap = Mousetrap || require('./../mousetrap');
+var Mousetraps = Mousetraps || require('../Mousetraps');
 var KeyEvent = KeyEvent || require('./libs/key-event');
 
 
 
-// Reset Mousetrap after each test
+// Reset Mousetraps after each test
 afterEach(function () {
-  Mousetrap.reset();
+  Mousetraps.reset();
 });
 
-describe('Mousetrap.bind', function () {
+describe('Mousetraps.bind', function () {
   describe('basic', function () {
     it('z key fires when pressing z', function () {
       var spy = sinon.spy();
 
-      Mousetrap.bind('z', spy);
+      Mousetraps.bind('z', spy);
 
       KeyEvent.simulate('Z'.charCodeAt(0), 90);
 
@@ -41,7 +43,7 @@ describe('Mousetrap.bind', function () {
     it('z key fires from keydown', function () {
       var spy = sinon.spy();
 
-      Mousetrap.bind('z', spy, 'keydown');
+      Mousetraps.bind('z', spy, 'keydown');
 
       KeyEvent.simulate('Z'.charCodeAt(0), 90);
 
@@ -55,7 +57,7 @@ describe('Mousetrap.bind', function () {
     it('z key does not fire when pressing b', function () {
       var spy = sinon.spy();
 
-      Mousetrap.bind('z', spy);
+      Mousetraps.bind('z', spy);
 
       KeyEvent.simulate('B'.charCodeAt(0), 66);
 
@@ -68,7 +70,7 @@ describe('Mousetrap.bind', function () {
       var charCode;
       var modifier;
 
-      Mousetrap.bind('z', spy);
+      Mousetraps.bind('z', spy);
 
       for (var i = 0; i < 4; i++) {
         modifier = modifiers[i];
@@ -98,7 +100,7 @@ describe('Mousetrap.bind', function () {
       shadowRoot.appendChild(inputElement);
       expect(shadowHost.shadowRoot).to.equal(shadowRoot, 'shadow root accessible');
 
-      Mousetrap.bind('z', spy);
+      Mousetraps.bind('z', spy);
       KeyEvent.simulate('Z'.charCodeAt(0), 90, [], inputElement, 1, { shadowHost: shadowHost });
       document.body.removeChild(shadowHost);
       expect(spy.callCount).to.equal(0, 'callback should not have fired');
@@ -115,7 +117,7 @@ describe('Mousetrap.bind', function () {
       shadowRoot.appendChild(inputElement);
       expect(shadowHost.shadowRoot).to.equal(null, 'shadow root unaccessible');
 
-      Mousetrap.bind('z', spy);
+      Mousetraps.bind('z', spy);
       KeyEvent.simulate('Z'.charCodeAt(0), 90, [], inputElement, 1, { shadowHost: shadowHost });
       document.body.removeChild(shadowHost);
       expect(spy.callCount).to.equal(1, 'callback should have fired once');
@@ -124,7 +126,7 @@ describe('Mousetrap.bind', function () {
     it('keyup events should fire', function() {
       var spy = sinon.spy();
 
-      Mousetrap.bind('z', spy, 'keyup');
+      Mousetraps.bind('z', spy, 'keyup');
 
       KeyEvent.simulate('Z'.charCodeAt(0), 90);
 
@@ -138,28 +140,28 @@ describe('Mousetrap.bind', function () {
     it('keyup event for 0 should fire', function () {
       var spy = sinon.spy();
 
-      Mousetrap.bind('0', spy, 'keyup');
+      Mousetraps.bind('0', spy, 'keyup');
 
       KeyEvent.simulate(0, 48);
 
       expect(spy.callCount).to.equal(1, 'keyup event for "0" should fire');
     });
 
-    it('rebinding a key overwrites the callback for that key', function () {
+    it('Adding a new key callback does not overwrite any existing callbacks for that key', function () {
       var spy1 = sinon.spy();
       var spy2 = sinon.spy();
-      Mousetrap.bind('x', spy1);
-      Mousetrap.bind('x', spy2);
+      Mousetraps.bind('x', spy1);
+      Mousetraps.bind('x', spy2);
 
       KeyEvent.simulate('X'.charCodeAt(0), 88);
 
-      expect(spy1.callCount).to.equal(0, 'original callback should not fire');
+      expect(spy1.callCount).to.equal(1, 'original callback should fire');
       expect(spy2.callCount).to.equal(1, 'new callback should fire');
     });
 
     it('binding an array of keys', function () {
       var spy = sinon.spy();
-      Mousetrap.bind(['a', 'b', 'c'], spy);
+      Mousetraps.bind(['a', 'b', 'c'], spy);
 
       KeyEvent.simulate('A'.charCodeAt(0), 65);
       expect(spy.callCount).to.equal(1, 'new callback was called');
@@ -179,7 +181,7 @@ describe('Mousetrap.bind', function () {
         return false;
       });
 
-      Mousetrap.bind('command+s', spy);
+      Mousetraps.bind('command+s', spy);
 
       KeyEvent.simulate('S'.charCodeAt(0), 83, ['meta']);
 
@@ -195,8 +197,8 @@ describe('Mousetrap.bind', function () {
 
       // try without return false
       spy = sinon.spy();
-      Mousetrap.bind('command+s', spy);
-      KeyEvent.simulate('S'.charCodeAt(0), 83, ['meta']);
+      Mousetraps.bind('command+d', spy);
+      KeyEvent.simulate('D'.charCodeAt(0), 68, ['meta']);
 
       expect(spy.callCount).to.equal(1, 'callback should fire');
       expect(spy.args[0][0]).to.be.an.instanceOf(Event, 'first argument should be Event');
@@ -206,7 +208,7 @@ describe('Mousetrap.bind', function () {
 
     it('capslock key is ignored', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('a', spy);
+      Mousetraps.bind('a', spy);
 
       KeyEvent.simulate('a'.charCodeAt(0), 65);
       expect(spy.callCount).to.equal(1, 'callback should fire for lowercase a');
@@ -219,12 +221,23 @@ describe('Mousetrap.bind', function () {
       KeyEvent.simulate('A'.charCodeAt(0), 65, ['shift']);
       expect(spy.callCount).to.equal(0, 'callback should not fire fort shift+a');
     });
+
+    it('keypress after keydown', function () {
+      var spy = sinon.spy();
+      var spy2 = sinon.spy();
+      Mousetraps.bind('a', spy, "keydown");
+      Mousetraps.bind('a', spy2, "keypress");
+
+      KeyEvent.simulate('a'.charCodeAt(0), 65);
+      expect(spy.callCount).to.equal(1, 'keydown bind should fire');
+      expect(spy2.callCount).to.equal(1, 'keypress bind should fire');
+    });
   });
 
   describe('special characters', function () {
     it('binding special characters', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('*', spy);
+      Mousetraps.bind('*', spy);
 
       KeyEvent.simulate('*'.charCodeAt(0), 56, ['shift']);
 
@@ -234,7 +247,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding special characters keyup', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('*', spy, 'keyup');
+      Mousetraps.bind('*', spy, 'keyup');
 
       KeyEvent.simulate('*'.charCodeAt(0), 56, ['shift']);
 
@@ -244,7 +257,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding keys with no associated charCode', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('left', spy);
+      Mousetraps.bind('left', spy);
 
       KeyEvent.simulate(0, 37);
 
@@ -254,7 +267,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding plus key alone should work', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('+', spy);
+      Mousetraps.bind('+', spy);
 
       // fires for regular + character
       KeyEvent.simulate('+'.charCodeAt(0), 43);
@@ -268,7 +281,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding plus key as "plus" should work', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('plus', spy);
+      Mousetraps.bind('plus', spy);
 
       // fires for regular + character
       KeyEvent.simulate('+'.charCodeAt(0), 43);
@@ -282,7 +295,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding to alt++ should work', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('alt++', spy);
+      Mousetraps.bind('alt++', spy);
 
       KeyEvent.simulate('+'.charCodeAt(0), 43, ['alt']);
       expect(spy.callCount).to.equal(1, 'callback should fire');
@@ -291,7 +304,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding to alt+shift++ should work as well', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('alt+shift++', spy);
+      Mousetraps.bind('alt+shift++', spy);
 
       KeyEvent.simulate('+'.charCodeAt(0), 43, ['shift', 'alt']);
       expect(spy.callCount).to.equal(1, 'callback should fire');
@@ -303,7 +316,7 @@ describe('Mousetrap.bind', function () {
   describe('combos with modifiers', function () {
     it('binding key combinations', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('command+o', spy);
+      Mousetraps.bind('command+o', spy);
 
       KeyEvent.simulate('O'.charCodeAt(0), 79, ['meta']);
 
@@ -313,7 +326,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding key combos with multiple modifiers', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('command+shift+o', spy);
+      Mousetraps.bind('command+shift+o', spy);
       KeyEvent.simulate('O'.charCodeAt(0), 79, ['meta']);
       expect(spy.callCount).to.equal(0, 'command+o callback should not fire');
 
@@ -324,7 +337,7 @@ describe('Mousetrap.bind', function () {
     it('should fire callback when ctrl+numpad 0 is pressed', function () {
       var spy = sinon.spy();
 
-      Mousetrap.bind('ctrl+0', spy);
+      Mousetraps.bind('ctrl+0', spy);
 
       // numpad 0 keycode
       KeyEvent.simulate(96, 96, ['ctrl']);
@@ -338,7 +351,7 @@ describe('Mousetrap.bind', function () {
   describe('sequences', function () {
     it('binding sequences', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('g i', spy);
+      Mousetraps.bind('g i', spy);
 
       KeyEvent.simulate('G'.charCodeAt(0), 71);
       expect(spy.callCount).to.equal(0, 'callback should not fire');
@@ -349,7 +362,7 @@ describe('Mousetrap.bind', function () {
 
     it('binding sequences with mixed types', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('g o enter', spy);
+      Mousetraps.bind('g o enter', spy);
 
       KeyEvent.simulate('G'.charCodeAt(0), 71);
       expect(spy.callCount).to.equal(0, 'callback should not fire');
@@ -363,19 +376,19 @@ describe('Mousetrap.bind', function () {
 
     it('binding sequences starting with modifier keys', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('option enter', spy);
+      Mousetraps.bind('option enter', spy);
       KeyEvent.simulate(0, 18, ['alt']);
       KeyEvent.simulate(0, 13);
       expect(spy.callCount).to.equal(1, 'callback should fire');
 
       spy = sinon.spy();
-      Mousetrap.bind('command enter', spy);
+      Mousetraps.bind('command enter', spy);
       KeyEvent.simulate(0, 91, ['meta']);
       KeyEvent.simulate(0, 13);
       expect(spy.callCount).to.equal(1, 'callback should fire');
 
       spy = sinon.spy();
-      Mousetrap.bind('escape enter', spy);
+      Mousetraps.bind('escape enter', spy);
       KeyEvent.simulate(0, 27);
       KeyEvent.simulate(0, 13);
       expect(spy.callCount).to.equal(1, 'callback should fire');
@@ -384,8 +397,8 @@ describe('Mousetrap.bind', function () {
     it('key within sequence should not fire', function () {
       var spy1 = sinon.spy();
       var spy2 = sinon.spy();
-      Mousetrap.bind('a', spy1);
-      Mousetrap.bind('c a t', spy2);
+      Mousetraps.bind('a', spy1);
+      Mousetraps.bind('c a t', spy2);
 
       KeyEvent.simulate('A'.charCodeAt(0), 65);
       expect(spy1.callCount).to.equal(1, 'callback 1 should fire');
@@ -402,8 +415,8 @@ describe('Mousetrap.bind', function () {
       var spy1 = sinon.spy();
       var spy2 = sinon.spy();
 
-      Mousetrap.bind('t', spy1, 'keyup');
-      Mousetrap.bind('b a t', spy2);
+      Mousetraps.bind('t', spy1, 'keyup');
+      Mousetraps.bind('b a t', spy2);
 
       KeyEvent.simulate('B'.charCodeAt(0), 66);
       KeyEvent.simulate('A'.charCodeAt(0), 65);
@@ -415,7 +428,7 @@ describe('Mousetrap.bind', function () {
 
     it('keyup sequences should work', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('b a t', spy, 'keyup');
+      Mousetraps.bind('b a t', spy, 'keyup');
 
       KeyEvent.simulate('b'.charCodeAt(0), 66);
       KeyEvent.simulate('a'.charCodeAt(0), 65);
@@ -428,7 +441,7 @@ describe('Mousetrap.bind', function () {
 
     it('extra spaces in sequences should be ignored', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('b   a  t', spy);
+      Mousetraps.bind('b   a  t', spy);
 
       KeyEvent.simulate('b'.charCodeAt(0), 66);
       KeyEvent.simulate('a'.charCodeAt(0), 65);
@@ -441,8 +454,8 @@ describe('Mousetrap.bind', function () {
       var spy1 = sinon.spy();
       var spy2 = sinon.spy();
 
-      Mousetrap.bind('ctrl a', spy1);
-      Mousetrap.bind('ctrl+b', spy2);
+      Mousetraps.bind('ctrl a', spy1);
+      Mousetraps.bind('ctrl+b', spy2);
 
       KeyEvent.simulate(0, 17, ['ctrl']);
       KeyEvent.simulate('A'.charCodeAt(0), 65);
@@ -456,8 +469,8 @@ describe('Mousetrap.bind', function () {
       var spy1 = sinon.spy();
       var spy2 = sinon.spy();
 
-      Mousetrap.bind('g g l', spy2);
-      Mousetrap.bind('g g o', spy1);
+      Mousetraps.bind('g g l', spy2);
+      Mousetraps.bind('g g o', spy1);
 
       KeyEvent.simulate('g'.charCodeAt(0), 71);
       KeyEvent.simulate('g'.charCodeAt(0), 71);
@@ -478,8 +491,8 @@ describe('Mousetrap.bind', function () {
       var spy1 = sinon.spy();
       var spy2 = sinon.spy();
 
-      Mousetrap.bind('a b c', spy1);
-      Mousetrap.bind('b c', spy2);
+      Mousetraps.bind('a b c', spy1);
+      Mousetraps.bind('b c', spy2);
 
       KeyEvent.simulate('A'.charCodeAt(0), 65);
       KeyEvent.simulate('B'.charCodeAt(0), 66);
@@ -490,8 +503,8 @@ describe('Mousetrap.bind', function () {
 
       spy1.resetHistory();
       spy2.resetHistory();
-      Mousetrap.bind('option b', spy1);
-      Mousetrap.bind('a option b', spy2);
+      Mousetraps.bind('option b', spy1);
+      Mousetraps.bind('a option b', spy2);
 
       KeyEvent.simulate('A'.charCodeAt(0), 65);
       KeyEvent.simulate(0, 18, ['alt']);
@@ -501,23 +514,23 @@ describe('Mousetrap.bind', function () {
       expect(spy2.callCount).to.equal(1, '"a option b" should fire');
     });
 
-    it('rebinding same sequence should override previous', function () {
+    it('binding same sequence should not override previous', function () {
       var spy1 = sinon.spy();
       var spy2 = sinon.spy();
-      Mousetrap.bind('a b c', spy1);
-      Mousetrap.bind('a b c', spy2);
+      Mousetraps.bind('a b c', spy1);
+      Mousetraps.bind('a b c', spy2);
 
       KeyEvent.simulate('a'.charCodeAt(0), 65);
       KeyEvent.simulate('b'.charCodeAt(0), 66);
       KeyEvent.simulate('c'.charCodeAt(0), 67);
 
-      expect(spy1.callCount).to.equal(0, 'first callback should not fire');
+      expect(spy1.callCount).to.equal(1, 'first callback should fire');
       expect(spy2.callCount).to.equal(1, 'second callback should fire');
     });
 
     it('broken sequences', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('h a t', spy);
+      Mousetraps.bind('h a t', spy);
 
       KeyEvent.simulate('h'.charCodeAt(0), 72);
       KeyEvent.simulate('e'.charCodeAt(0), 69);
@@ -529,28 +542,30 @@ describe('Mousetrap.bind', function () {
     });
 
     it('sequences containing combos should work', function () {
+
       var spy = sinon.spy();
-      Mousetrap.bind('a ctrl+b', spy);
+      Mousetraps.bind('a ctrl+b', spy);
 
       KeyEvent.simulate('a'.charCodeAt(0), 65);
       KeyEvent.simulate('B'.charCodeAt(0), 66, ['ctrl']);
 
       expect(spy.callCount).to.equal(1, '"a ctrl+b" should fire');
 
-      Mousetrap.unbind('a ctrl+b');
+      Mousetraps.unbind('a ctrl+b', spy);
 
       spy = sinon.spy();
-      Mousetrap.bind('ctrl+b a', spy);
+      Mousetraps.bind('ctrl+b a', spy);
 
       KeyEvent.simulate('b'.charCodeAt(0), 66, ['ctrl']);
       KeyEvent.simulate('a'.charCodeAt(0), 65);
 
       expect(spy.callCount).to.equal(1, '"ctrl+b a" should fire');
+      
     });
 
     it('sequences starting with spacebar should work', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('a space b c', spy);
+      Mousetraps.bind('a space b c', spy);
 
       KeyEvent.simulate('a'.charCodeAt(0), 65);
       KeyEvent.simulate(32, 32);
@@ -562,7 +577,7 @@ describe('Mousetrap.bind', function () {
 
     it('konami code', function () {
       var spy = sinon.spy();
-      Mousetrap.bind('up up down down left right left right b a enter', spy);
+      Mousetraps.bind('up up down down left right left right b a enter', spy);
 
       KeyEvent.simulate(0, 38);
       KeyEvent.simulate(0, 38);
@@ -583,7 +598,7 @@ describe('Mousetrap.bind', function () {
       var spy = sinon.spy();
       var clock = sinon.useFakeTimers();
 
-      Mousetrap.bind('h a t', spy);
+      Mousetraps.bind('h a t', spy);
 
       KeyEvent.simulate('h'.charCodeAt(0), 72);
       clock.tick(600);
@@ -599,7 +614,7 @@ describe('Mousetrap.bind', function () {
       var spy = sinon.spy();
       var clock = sinon.useFakeTimers();
 
-      Mousetrap.bind('g t', spy);
+      Mousetraps.bind('g t', spy);
       KeyEvent.simulate('g'.charCodeAt(0), 71);
       clock.tick(1000);
       KeyEvent.simulate('t'.charCodeAt(0), 84);
@@ -635,7 +650,7 @@ describe('Mousetrap.bind', function () {
     function getCallback(key, keyCode, type, modifiers) {
       return function () {
         var spy = sinon.spy();
-        Mousetrap.bind(key, spy);
+        Mousetraps.bind(key, spy);
 
         KeyEvent.simulate(key.charCodeAt(0), keyCode, modifiers);
         expect(spy.callCount).to.equal(1);
@@ -654,27 +669,27 @@ describe('Mousetrap.bind', function () {
   });
 });
 
-describe('Mousetrap.unbind', function () {
+describe('Mousetraps.unbind', function () {
   it('unbind works', function () {
     var spy = sinon.spy();
-    Mousetrap.bind('a', spy);
+    Mousetraps.bind('a', spy);
     KeyEvent.simulate('a'.charCodeAt(0), 65);
     expect(spy.callCount).to.equal(1, 'callback for a should fire');
 
-    Mousetrap.unbind('a');
+    Mousetraps.unbind('a', spy);
     KeyEvent.simulate('a'.charCodeAt(0), 65);
     expect(spy.callCount).to.equal(1, 'callback for a should not fire after unbind');
   });
 
   it('unbind accepts an array', function () {
     var spy = sinon.spy();
-    Mousetrap.bind(['a', 'b', 'c'], spy);
+    Mousetraps.bind(['a', 'b', 'c'], spy);
     KeyEvent.simulate('a'.charCodeAt(0), 65);
     KeyEvent.simulate('b'.charCodeAt(0), 66);
     KeyEvent.simulate('c'.charCodeAt(0), 67);
     expect(spy.callCount).to.equal(3, 'callback should have fired 3 times');
 
-    Mousetrap.unbind(['a', 'b', 'c']);
+    Mousetraps.unbind(['a', 'b', 'c'], spy);
     KeyEvent.simulate('a'.charCodeAt(0), 65);
     KeyEvent.simulate('b'.charCodeAt(0), 66);
     KeyEvent.simulate('c'.charCodeAt(0), 67);
@@ -696,7 +711,7 @@ describe('wrapping a specific element', function () {
   it('z key fires when pressing z in the target element', function () {
     var spy = sinon.spy();
 
-    Mousetrap(form).bind('z', spy);
+    Mousetraps(form).bind('z', spy);
 
     KeyEvent.simulate('Z'.charCodeAt(0), 90, [], form);
 
@@ -708,7 +723,7 @@ describe('wrapping a specific element', function () {
   it('z key fires when pressing z in a child of the target element', function () {
     var spy = sinon.spy();
 
-    Mousetrap(form).bind('z', spy);
+    Mousetraps(form).bind('z', spy);
 
     KeyEvent.simulate('Z'.charCodeAt(0), 90, [], textarea);
 
@@ -720,18 +735,18 @@ describe('wrapping a specific element', function () {
   it('z key does not fire when pressing z outside the target element', function () {
     var spy = sinon.spy();
 
-    Mousetrap(textarea).bind('z', spy);
+    Mousetraps(textarea).bind('z', spy);
 
     KeyEvent.simulate('Z'.charCodeAt(0), 90);
 
     expect(spy.callCount).to.equal(0, 'callback should not have fired');
   });
 
-  it('should work when constructing a new mousetrap object', function () {
+  it('should work when constructing a new Mousetraps object', function () {
     var spy = sinon.spy();
 
-    var mousetrap = new Mousetrap(form);
-    mousetrap.bind('a', spy);
+    var mousetraps = new Mousetraps(form);
+    mousetraps.bind('a', spy);
 
     KeyEvent.simulate('a'.charCodeAt(0), 65, [], textarea);
 
@@ -740,11 +755,11 @@ describe('wrapping a specific element', function () {
     expect(spy.args[0][1]).to.equal('a', 'second argument should be key combo');
   });
 
-  it('should allow you to create an empty mousetrap constructor', function () {
+  it('should allow you to create an empty Mousetraps constructor', function () {
     var spy = sinon.spy();
 
-    var mousetrap = new Mousetrap();
-    mousetrap.bind('a', spy);
+    var mousetraps = new Mousetraps();
+    mousetraps.bind('a', spy);
 
     KeyEvent.simulate('a'.charCodeAt(0), 65);
 
@@ -758,11 +773,11 @@ describe('Mouestrap.addKeycodes', function () {
   it('should properly recognize non-default mapping', function () {
     const spy = sinon.spy();
 
-    Mousetrap.addKeycodes({
+    Mousetraps.addKeycodes({
       144: 'num',
     });
 
-    Mousetrap.bind('num', spy);
+    Mousetraps.bind('num', spy);
 
     KeyEvent.simulate(144, 144);
     expect(spy.callCount).to.equal(1, 'callback should fire for num');

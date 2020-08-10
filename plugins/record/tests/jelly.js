@@ -33,13 +33,13 @@ var Jelly = (function() {
         recordButton.prop('disabled', true);
         recordButton.text('Recording');
 
-        Mousetrap.record(function(sequence) {
+        Mousetraps.record(function(sequence) {
             recordResult.html(_formatSequenceAsHtml(sequence));
             recordButton.prop('disabled', false);
             recordButton.text('Record');
         });
 
-        // take focus away from the button so that Mousetrap will actually
+        // take focus away from the button so that Mousetraps will actually
         // capture keystrokes
         recordButton.blur();
     }
